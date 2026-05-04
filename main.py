@@ -132,4 +132,5 @@ async def get_agent_card():
         "skills": ["Stroke Triage", "SDoH Auditing", "Risk Simulation", "Geriatric Assessment"]
     }
 
+print(dir(mcp)[-10:])          # show recently added attributes
 app.mount("/mcp", mcp.app)
