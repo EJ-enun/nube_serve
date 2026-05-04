@@ -83,7 +83,7 @@ async def evaluate_full_vascular_profile(ctx: Context, age: float, hypertension:
                                         bmi: float, stroke: int, residence_type: str) -> str:
     """The master tool. Combines Ideas 1, 2, 3, 5, 6, and 7 into a single clinical audit."""
     
-    patient_id = ctx.request_context.get("x-sharp-patient-id", "GUEST_PATIENT")
+    patient_id = ctx.request_context.request.headers.get("x-sharp-patient-id", "GUEST_PATIENT")
     
     data = {
         "age": age, "hypertension": hypertension, "heart_disease": heart_disease,
@@ -132,5 +132,4 @@ async def get_agent_card():
         "skills": ["Stroke Triage", "SDoH Auditing", "Risk Simulation", "Geriatric Assessment"]
     }
 
-print(dir(mcp)[-10:])          # show recently added attributes
-app.mount("/mcp", mcp.app)
+app.mount("/mcp", mcp)
