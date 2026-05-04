@@ -1,15 +1,11 @@
 import os
 from fastapi import FastAPI
 from fastmcp import FastMCP, Context
-from neuro_logic import NeuroGuardIntelligence # Or paste the class here
 from typing import Dict, Any, List
 from enum import Enum
 
-
 app = FastAPI(title="NeuroGuard A2A Specialist")
-# Use the FastMCP SDK to handle the protocol logic
 mcp = FastMCP("NeuroGuard", description="Stroke & Vascular Intelligence")
-
 
 class RiskCategory(Enum):
     LOW = "Low"
@@ -18,155 +14,122 @@ class RiskCategory(Enum):
     CRITICAL = "Critical"
 
 class NeuroGuardIntelligence:
-    """
-    Production-grade logic engine for Vascular & Stroke Risk.
-    Designed for SHARP/FHIR context integration.
-    """
+    """Production-grade logic engine for all 7 Hackathon Ideas."""
+
+    @staticmethod
+    def idea_1_calculate_base_risk(data: Dict[str, Any]) -> float:
+        score = (data.get('age', 0) * 0.1)
+        if data.get('hypertension') == 1: score += 15
+        if data.get('heart_disease') == 1: score += 20
+        if data.get('avg_glucose_level', 0) > 150: score += 10
+        return min(round(score, 2), 100.0)
+
+    @staticmethod
+    def idea_2_analyze_sdoh(data: Dict[str, Any]) -> str:
+        res = data.get('Residence_type', 'Urban')
+        work = data.get('work_type', 'Private')
+        if res == "Rural" and work == "Self-employed":
+            return "High Risk: Limited access to urgent care + high occupational stress."
+        return "Standard environmental risk profile."
 
     @staticmethod
     def idea_3_comorbidity_orchestrator(data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Calculates a clinical comorbidity score using modified CHA2DS2-VASc logic.
-        Focus: Hypertension + Heart Disease + Marriage (Social Support).
-        """
-        score = 0
-        factors = []
-        
-        if data.get('hypertension') == 1:
-            score += 1
-            factors.append("Hypertension")
-        
-        if data.get('heart_disease') == 1:
-            score += 1
-            factors.append("Congestive Heart Failure/Vascular History")
-
-        # Marriage is a proxy for 'Social Support' in post-event outcomes
+        score = sum([1 for condition in ['hypertension', 'heart_disease'] if data.get(condition) == 1])
         support_multiplier = 0.8 if data.get('ever_married') == "Yes" else 1.2
-        
-        # Base risk adjustment
-        calculated_risk = score * 2.5 * support_multiplier
-        
         return {
-            "comorbidity_score": round(score, 1),
+            "comorbidity_score": score,
             "social_support_factor": "Strong" if support_multiplier < 1 else "Limited",
-            "detected_factors": factors,
-            "risk_weight": round(calculated_risk, 2)
+            "risk_weight": round(score * 2.5 * support_multiplier, 2)
         }
 
     @staticmethod
-    def idea_5_post_stroke_navigator(data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Tailors a rehabilitation roadmap based on occupational and social context.
-        Triggered if 'stroke' == 1.
-        """
-        work_type = data.get('work_type', 'Private')
-        is_married = data.get('ever_married') == "Yes"
-        
-        # Occupational adaptation
-        focus_area = "Manual Dexterity & Mobility" if work_type in ["Self-employed", "Private"] else "Cognitive Pacing"
-        if work_type == "children": focus_area = "Developmental Milestones"
+    def idea_4_lifestyle_pivot_sim(current_bmi: float, target_bmi: float, smokes: str) -> str:
+        improvement = (current_bmi - target_bmi) * 1.5
+        if smokes == "smokes": improvement += 25
+        return f"Risk Reduction: {round(improvement, 1)}% decrease in 5-year stroke probability."
 
+    @staticmethod
+    def idea_5_post_stroke_navigator(data: Dict[str, Any]) -> Dict[str, Any]:
+        work_type = data.get('work_type', 'Private')
+        focus_area = "Manual Dexterity & Mobility" if work_type in ["Self-employed", "Private"] else "Cognitive Pacing"
         return {
             "rehab_status": "Active" if data.get('stroke') == 1 else "Preventative",
-            "occupational_focus": focus_area,
-            "support_recommendation": "Spousal Assisted ADLs" if is_married else "Community Nursing Required",
-            "intensity_level": "High" if data.get('age', 0) < 60 else "Moderate-Paced"
+            "occupational_focus": focus_area
         }
 
     @staticmethod
     def idea_6_silent_risk_monitor(data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Identifies metabolic 'Silent Risks' using glucose-to-BMI ratios.
-        In a real FHIR setup, this would analyze 'Observation' time-series trends.
-        """
         glucose = data.get('avg_glucose_level', 0)
-        bmi = data.get('bmi', 0)
-        
-        # Logic: If glucose is high but the patient is otherwise 'asymptomatic' (Low BMI, No Heart Disease)
         is_silent = glucose > 180 and data.get('hypertension') == 0 and data.get('heart_disease') == 0
-        
         return {
             "metabolic_flag": "Elevated" if glucose > 140 else "Normal",
-            "silent_risk_detected": is_silent,
-            "clinical_note": "Asymptomatic Hyperglycemia detected. Monitor for Type II Diabetes." if is_silent else "Metabolic profile aligns with history."
+            "silent_risk_detected": is_silent
         }
 
     @staticmethod
     def idea_7_geriatric_shield(data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Adjusted risk weighting for elderly populations (>65).
-        Implements 'Beers Criteria' style sensitivity to medications/factors.
-        """
         age = data.get('age', 0)
-        if age < 65:
-            return {"shield_active": False, "note": "Geriatric protocols do not apply."}
-        
-        # Geriatric Weighting
-        weight = 2.0 if age > 75 else 1.5
-        vulnerability = (data.get('hypertension', 0) + data.get('heart_disease', 0)) * weight
-        
+        weight = 2.0 if age > 75 else 1.5 if age >= 65 else 1.0
         return {
-            "shield_active": True,
-            "age_adjusted_weight": weight,
-            "vulnerability_index": round(vulnerability, 2),
-            "recommendation": "Increased frequency of vascular screenings recommended due to age-weighting."
+            "shield_active": age >= 65,
+            "age_adjusted_weight": weight
         }
 
-@mcp.tool()
-async def full_vascular_audit(ctx: Context, age: float, hypertension: int, 
-                             heart_disease: int, ever_married: str, 
-                             work_type: str, avg_glucose_level: float, 
-                             bmi: float, stroke: int) -> str:
-    """Production-grade audit covering triage, rehab, and geriatric risk."""
-    # SHARP headers are accessed via ctx.request_context in Prompt Opinion
-    patient_id = ctx.request_context.get("x-sharp-patient-id", "GUEST")
-    
-    intel = NeuroGuardIntelligence()
-    data = locals() # Captures the parameters
-    
-    # Run logic from Ideas 3, 5, 6, 7
-    audit = intel.idea_3_comorbidity_orchestrator(data)
-    rehab = intel.idea_5_post_stroke_navigator(data)
-    
-    return f"Audit for Patient {patient_id}: Risk Weight {audit['risk_weight']}. Rehab: {rehab['occupational_focus']}."
+# --- MCP TOOLS EXPPOSED TO THE AGENT ---
 
 @mcp.tool()
 async def evaluate_full_vascular_profile(ctx: Context, age: float, hypertension: int, heart_disease: int, 
                                         ever_married: str, work_type: str, avg_glucose_level: float, 
-                                        bmi: float, stroke: int) -> str:
-    """Combines Ideas 3, 5, 6, and 7 into a single clinical audit."""
+                                        bmi: float, stroke: int, residence_type: str) -> str:
+    """The master tool. Combines Ideas 1, 2, 3, 5, 6, and 7 into a single clinical audit."""
     
-    patient_data = {
+    patient_id = ctx.request_context.get("x-sharp-patient-id", "GUEST_PATIENT")
+    
+    data = {
         "age": age, "hypertension": hypertension, "heart_disease": heart_disease,
-        "ever_married": ever_married, "work_type": work_type, 
+        "ever_married": ever_married, "work_type": work_type, "Residence_type": residence_type,
         "avg_glucose_level": avg_glucose_level, "bmi": bmi, "stroke": stroke
     }
 
-    intelligence = NeuroGuardIntelligence()
+    intel = NeuroGuardIntelligence()
     
-    # Run all engines
-    comorbidity = intelligence.idea_3_comorbidity_orchestrator(patient_data)
-    rehab = intelligence.idea_5_post_stroke_navigator(patient_data)
-    silent_risk = intelligence.idea_6_silent_risk_monitor(patient_data)
-    geriatric = intelligence.idea_7_geriatric_shield(patient_data)
+    triage_risk = intel.idea_1_calculate_base_risk(data)
+    sdoh = intel.idea_2_analyze_sdoh(data)
+    comorbidity = intel.idea_3_comorbidity_orchestrator(data)
+    rehab = intel.idea_5_post_stroke_navigator(data)
+    silent_risk = intel.idea_6_silent_risk_monitor(data)
+    geriatric = intel.idea_7_geriatric_shield(data)
 
-    # Format for the Agent's response
     return f"""
-    --- CLINICAL VASCULAR AUDIT ---
-    Comorbidity Score: {comorbidity['comorbidity_score']} (Factors: {', '.join(comorbidity['detected_factors'])})
-    Post-Stroke Plan: {rehab['occupational_focus']} - {rehab['support_recommendation']}
-    Silent Risk Alert: {'YES' if silent_risk['silent_risk_detected'] else 'None Detected'}
-    Geriatric Shield: {'Active (Index: ' + str(geriatric.get('vulnerability_index')) + ')' if geriatric['shield_active'] else 'N/A'}
+    --- NEUROGUARD AUDIT FOR PATIENT: {patient_id} ---
+    1. Base Triage Risk: {triage_risk}%
+    2. SDoH Analysis: {sdoh}
+    3. Comorbidity Weight: {comorbidity['risk_weight']} (Support: {comorbidity['social_support_factor']})
+    4. Silent Risk (Metabolic): {'DETECTED' if silent_risk['silent_risk_detected'] else 'Clear'}
+    5. Geriatric Shield: {'ACTIVE' if geriatric['shield_active'] else 'N/A'}
+    6. Care Plan Focus: {rehab['occupational_focus']}
     """
-# A2A Discovery Endpoint
+
+@mcp.tool()
+async def simulate_lifestyle_changes(ctx: Context, current_bmi: float, target_bmi: float, smoking_status: str) -> str:
+    """Idea 4: Run a 'What-If' simulation for patient motivation."""
+    intel = NeuroGuardIntelligence()
+    return intel.idea_4_lifestyle_pivot_sim(current_bmi, target_bmi, smoking_status)
+
+# --- A2A DISCOVERY ENDPOINT ---
+
 @app.get("/.well-known/agent.json")
 async def get_agent_card():
+    # Render automatically sets RENDER_EXTERNAL_HOSTNAME, but we fallback to localhost for testing
+    host = os.environ.get('RENDER_EXTERNAL_HOSTNAME', 'localhost:8000')
+    protocol = "https" if "render" in host else "http"
+    
     return {
         "name": "NeuroGuard Specialist",
         "description": "Expert agent for stroke risk and vascular health coordination.",
-        "endpoint": f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/mcp",
+        "endpoint": f"{protocol}://{host}/mcp",
         "capabilities": {"inter_agent_chat": True, "context_propagation": "SHARP"},
-        "skills": ["Stroke Triage", "SDoH Auditing", "Risk Simulation"]
+        "skills": ["Stroke Triage", "SDoH Auditing", "Risk Simulation", "Geriatric Assessment"]
     }
 
 app.mount("/mcp", mcp.fastapi_app())
