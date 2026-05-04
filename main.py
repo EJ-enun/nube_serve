@@ -132,4 +132,4 @@ async def get_agent_card():
         "skills": ["Stroke Triage", "SDoH Auditing", "Risk Simulation", "Geriatric Assessment"]
     }
 
-app.mount("/mcp", mcp.fastapi_app())
+app.mount("/mcp", mcp.app)
