@@ -5,7 +5,7 @@ from typing import Dict, Any, List
 from enum import Enum
 
 app = FastAPI(title="NeuroGuard A2A Specialist")
-mcp = FastMCP("NeuroGuard", description="Stroke & Vascular Intelligence")
+mcp = FastMCP("NeuroGuard")
 
 class RiskCategory(Enum):
     LOW = "Low"
