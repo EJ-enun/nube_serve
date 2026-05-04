@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+fastmcp
+python-multipart
+httpx
