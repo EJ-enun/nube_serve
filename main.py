@@ -3,7 +3,7 @@ import requests
 from fastapi import FastAPI
 from fastmcp import FastMCP, Context
 from typing import Dict, Any
-
+from fastapi import Request, HTTPException
 app = FastAPI(title="Fourth Trimester Care Agent")
 mcp = FastMCP("FourthTrimester")
 
