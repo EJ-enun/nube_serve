@@ -3,3 +3,4 @@ uvicorn
 fastmcp
 python-multipart
 httpx
+requests
