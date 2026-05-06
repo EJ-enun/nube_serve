@@ -33,6 +33,14 @@ class MaternalHealthIntelligence:
 
 # --- MCP TOOLS ---
 
+@app.middleware("http")
+async def validate_api_key(request: Request, call_next):
+    # This checks the header you configured in the Prompt Opinion dashboard
+    api_key = request.headers.get("X-API-Key")
+    if api_key != "maternity-secret-2026": # Use the value you typed in the modal
+        raise HTTPException(status_code=403, detail="Unauthorized MCP Access")
+    return await call_next(request)
+    
 @mcp.tool()
 async def audit_postpartum_gap(ctx: Context, fhir_json: str) -> str:
     """
@@ -81,5 +89,5 @@ async def get_agent_card():
         "capabilities": {"inter_agent_chat": True},
         "skills": ["Maternal Health Equity", "Postpartum Gap Analysis", "Clinical Outreach"]
     }
-
+    
 app.mount("/mcp", mcp)
