@@ -8,25 +8,6 @@ from typing import Dict, Any
 mcp = FastMCP("FourthTrimester")
 app = FastAPI(title="Fourth Trimester Care Agent")
 
-# --- AUTHENTICATION MIDDLEWARE ---
-@app.middleware("http")
-async def validate_api_key(request: Request, call_next):
-    # 1. ALWAYS allow health checks and discovery (Prevents 500 errors on startup)
-    if request.url.path in ["/", "/healthz", "/.well-known/agent.json"]:
-        return await call_next(request)
-        
-    # 2. Check for X-API-Key header
-    api_key = request.headers.get("X-API-Key")
-    expected_key = os.environ.get("MCP_SECRET_KEY", "maternity-secret-2026")
-    
-    # 3. Validation Logic
-    if api_key != expected_key:
-        # During a hackathon, you can log this instead of raising 
-        # to ensure the demo doesn't stop if a header is missed.
-        print(f"Warning: Unauthorized access attempt with key: {api_key}")
-        # raise HTTPException(status_code=403, detail="Unauthorized MCP Access") # Uncomment to strictly block
-        
-    return await call_next(request)
 
 # --- CLINICAL LOGIC ---
 class MaternalHealthIntelligence:
